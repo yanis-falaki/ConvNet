@@ -5,12 +5,15 @@ import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
+
+writer = SummaryWriter('runs/experiment_1')
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyper-paramters
-num_epochs = 10
+num_epochs = 30
 batch_size = 4
 learning_rate = 0.001
 
@@ -108,7 +111,15 @@ for epoch in range(num_epochs):
 
         if (i+1) % 2000 == 0:
             print(f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{n_total_steps}], Loss: {loss.item():.3f}, Acc: {(correct / total * 100):.3f} %')
-    print(f'Epoch [{epoch+1}/{num_epochs}], Accumulated_Loss: {(epoch_loss.item() / i+1):.3f}, Accumulated_Acc: {(epoch_correct / epoch_total * 100):.3f} %')
+
+        # Add step-wise loss, no accuracy since we're doing batches of 4 and so there's a lot of variability
+        writer.add_scalar('step_loss', loss.item(), (epoch * n_total_steps) + i)
+
+    print(f'Epoch [{epoch+1}/{num_epochs}], Accumulated_Loss: {(epoch_loss.item() / (n_total_steps)):.3f}, Accumulated_Acc: {(epoch_correct / epoch_total * 100):.3f} %')
+
+    # Add epoch-wise loss and accuracy
+    writer.add_scalar('accumulated_loss', epoch_loss.item() / (n_total_steps), epoch)
+    writer.add_scalar('accumulated_accuracy', epoch_correct / epoch_total, epoch)
 
 print('Finished Training')
 
