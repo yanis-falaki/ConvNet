@@ -6,6 +6,8 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
+from ConvNet import ConvNet
+from ConvNet import classes
 
 writer = SummaryWriter('runs/experiment_1')
 
@@ -28,54 +30,10 @@ test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
-class ConvNet(nn.Module):
-    def __init__(self):
-        super(ConvNet, self).__init__()
-        # Convolutional output dimensions formula (in each depth slice): W_new = (W-F + 2P)/S + 1 where W=input_shape, F=kernel_shape, P=padding_amount, S=stride_amount
-
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16*5*5, 120) # in_features pre-calculated, 16 depth slices, shape is 5x5 - flattened
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward (self, X):
-        # First convolutional layer
-        X = self.conv1(X)
-
-        # Activation function on conv1 output
-        X = F.relu(X)
-
-        # Max pooling on relu output, effectively halving the shape (kernel size of 2, stride of 2)
-        X = self.pool(X)
-
-        # Second convolutional layer
-        X = self.conv2(X)
-
-        # Activation on conv2 output
-        X = F.relu(X)
-
-        # Max Pooling on relu output
-        X = self.pool(X)
-
-        # Flatten so that it can enter fully connected layer
-        X = X.view(-1, 16*5*5)
-
-        # Regular fully connected graph
-        X = self.fc1(X)
-        X = F.relu(X)
-        X = self.fc2(X)
-        X = F.relu(X)
-        X = self.fc3(X)
-        return X
-
 model = ConvNet().to(device=device)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
+optimizer = torch.optim.Adam(weight_decay=1e-4, params=model.parameters())
 
 n_total_steps = len(train_loader)
 for epoch in range(num_epochs):
@@ -150,3 +108,5 @@ with torch.no_grad():
 
     for i in range(10):
         acc = 100.0 * n_class_correct[i] / n_class_samples[i]
+
+torch.save(model.state_dict(), 'model_state_dict.pth')
