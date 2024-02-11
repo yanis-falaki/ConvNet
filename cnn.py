@@ -7,16 +7,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from ConvNet import ConvNet
-from ConvNet import classes
+from ResNet import ResNet
 
-writer = SummaryWriter('runs/experiment_1')
+writer = SummaryWriter('runs/resnet_n_5')
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyper-paramters
 num_epochs = 30
-batch_size = 4
+batch_size = 32
 learning_rate = 0.001
 
 # Dataset has PILImage images of range [0, 1]
@@ -30,7 +30,7 @@ test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-model = ConvNet().to(device=device)
+model = ResNet(5).to(device=device)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(weight_decay=1e-4, params=model.parameters())
@@ -67,7 +67,7 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        if (i+1) % 2000 == 0:
+        if (i+1) % 200 == 0:
             print(f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{n_total_steps}], Loss: {loss.item():.3f}, Acc: {(correct / total * 100):.3f} %')
 
         # Add step-wise loss, no accuracy since we're doing batches of 4 and so there's a lot of variability
@@ -109,4 +109,4 @@ with torch.no_grad():
     for i in range(10):
         acc = 100.0 * n_class_correct[i] / n_class_samples[i]
 
-torch.save(model.state_dict(), 'model_state_dict.pth')
+torch.save(model.state_dict(), 'resnet_state_dict.pth')
