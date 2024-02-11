@@ -33,7 +33,8 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, s
 model = ResNet(5).to(device=device)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(weight_decay=1e-4, params=model.parameters())
+optimizer = torch.optim.Adam(weight_decay=1e-4, params=model.parameters(), lr=learning_rate)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=5, gamma=0.5)
 
 n_total_steps = len(train_loader)
 for epoch in range(num_epochs):
@@ -73,6 +74,9 @@ for epoch in range(num_epochs):
         # Add step-wise loss, no accuracy since we're doing batches of 4 and so there's a lot of variability
         writer.add_scalar('step_loss', loss.item(), (epoch * n_total_steps) + i)
 
+    # Increment Scheduler
+    scheduler.step()
+
     print(f'Epoch [{epoch+1}/{num_epochs}], Accumulated_Loss: {(epoch_loss.item() / (n_total_steps)):.3f}, Accumulated_Acc: {(epoch_correct / epoch_total * 100):.3f} %')
 
     # Add epoch-wise loss and accuracy
@@ -80,6 +84,8 @@ for epoch in range(num_epochs):
     writer.add_scalar('accumulated_accuracy', epoch_correct / epoch_total, epoch)
 
 print('Finished Training')
+
+torch.save(model.state_dict(), 'resnet_state_dict.pth')
 
 with torch.no_grad():
     n_correct = 0
@@ -96,7 +102,7 @@ with torch.no_grad():
         n_samples += labels.size(0)
         n_correct += (predicted == labels).sum().item()
 
-        for i in range(batch_size):
+        for i in range(labels.size(0)):
             label = labels[i]
             pred = predicted[i]
             if (label == pred):
@@ -108,5 +114,3 @@ with torch.no_grad():
 
     for i in range(10):
         acc = 100.0 * n_class_correct[i] / n_class_samples[i]
-
-torch.save(model.state_dict(), 'resnet_state_dict.pth')
