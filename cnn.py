@@ -9,6 +9,35 @@ from torch.utils.tensorboard import SummaryWriter
 from ConvNet import ConvNet
 from ResNet import ResNet
 
+def calculate_validation(model_param):
+    with torch.no_grad():
+        n_correct = 0
+        n_samples = 0
+        n_class_correct = [0 for i in range(10)]
+        n_class_samples = [0 for i in range(10)]
+
+        for images, labels in test_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model_param(images)
+            # Max returns (value, index)
+            _, predicted = torch.max(outputs, 1)
+            n_samples += labels.size(0)
+            n_correct += (predicted == labels).sum().item()
+
+            for i in range(labels.size(0)):
+                label = labels[i]
+                pred = predicted[i]
+                if (label == pred):
+                    n_class_correct[label] += 1
+                n_class_samples[label] += 1
+
+        acc = n_correct / n_samples
+        print(f'Accuracy of the network: {acc}')
+        return acc
+    
+
+
 writer = SummaryWriter('runs/resnet_n_5')
 
 # Device configuration
@@ -83,34 +112,11 @@ for epoch in range(num_epochs):
     writer.add_scalar('accumulated_loss', epoch_loss.item() / (n_total_steps), epoch)
     writer.add_scalar('accumulated_accuracy', epoch_correct / epoch_total, epoch)
 
+    # Add epoch-wise validation accuracy
+    validation_acc = calculate_validation(model)
+    writer.add_scalar('validation_accuracy', validation_acc, epoch)
+
 print('Finished Training')
 
 torch.save(model.state_dict(), 'resnet_state_dict.pth')
 
-with torch.no_grad():
-    n_correct = 0
-    n_samples = 0
-    n_class_correct = [0 for i in range(10)]
-    n_class_samples = [0 for i in range(10)]
-
-    for images, labels in test_loader:
-        images = images.to(device)
-        labels = labels.to(device)
-        outputs = model(images)
-        # Max returns (value, index)
-        _, predicted = torch.max(outputs, 1)
-        n_samples += labels.size(0)
-        n_correct += (predicted == labels).sum().item()
-
-        for i in range(labels.size(0)):
-            label = labels[i]
-            pred = predicted[i]
-            if (label == pred):
-                n_class_correct[label] += 1
-            n_class_samples[label] += 1
-
-    acc = 100.0 * n_correct / n_samples
-    print(f'Accuracy of the network: {acc} %')
-
-    for i in range(10):
-        acc = 100.0 * n_class_correct[i] / n_class_samples[i]
