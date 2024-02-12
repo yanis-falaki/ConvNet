@@ -25,7 +25,7 @@ class ResidualBlock(nn.Module):
         self.identity_downsample = identity_downsample
 
         stride = 1
-        # If we're doubling the output channels, then input channels must halve
+        # If we're doubling the output channels, then output features must halve
         if input_channels != output_channels:
             stride = 2
 
